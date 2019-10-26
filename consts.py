@@ -1,0 +1,17 @@
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+PART_0 = 0
+MESSAGES_FILE_LOCAL = "messages.pickle"
+TOKEN_FILE_LOCAL = 'token.pickle'
+NEXT_PAGE_TOKEN = "nextPageToken"
+PAYLOAD = "payload"
+PARTS = "parts"
+BODY = "body"
+DATA = "data"
+MIME_TYPE = "mimeType"
+CZK = "CZK"
+KC = "Kč"
+FIRST_DATE_FORMAT = "%d %B %Y"
+SECOND_DATE_FORMAT = "%a,%b %d,%Y"
+LABEL_UBER = "label:uber"
+RB = "rb"
+WB = "wb"

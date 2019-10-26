@@ -10,32 +10,30 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+from consts import *
 
 
 def main():
-    PART_0 = 0
     plot_data = {}
     messages_list = []
     messages_list = get_messages_list_from_gmail_or_local_load(messages_list)
     decoded_messages_list = []
     for message in messages_list:
-        if message["payload"]["parts"][PART_0]["mimeType"] == "text/html":
+        if message[PAYLOAD][PARTS][PART_0][MIME_TYPE] == "text/html":
             decoded_messages_list.append(
-                base64.urlsafe_b64decode(message["payload"]["parts"][PART_0]["body"]["data"].encode('UTF-8')))
+                base64.urlsafe_b64decode(message[PAYLOAD][PARTS][PART_0][BODY][DATA].encode('UTF-8')))
     first_type = []
     second_type = []
     for message in decoded_messages_list:
-        # print(BeautifulSoup(message,"html.parser"))
-        cleantexthtml = BeautifulSoup(message, "html.parser")
-        for s in cleantexthtml(['script', 'style']):
+        clean_text_html = BeautifulSoup(message, "html.parser")
+        for s in clean_text_html(['script', 'style']):
             s.decompose()
-        cleantext = cleantexthtml.text.replace("\n", "").replace(", Dmtriy", "").replace("Uber", "")
-        if cleantext != "":
-            if len(cleantext.split("|")) == 3:
-                second_type.append(cleantext.split("|")[0])
+        clean_text = clean_text_html.text.replace("\n", "").replace(", Dmtriy", "").replace("Uber", "")
+        if clean_text != "":
+            if len(clean_text.split("|")) == 3:
+                second_type.append(clean_text.split("|")[0])
             else:
-                first_type.append(cleantext)
+                first_type.append(clean_text)
 
     for message in first_type:
         words_list = list(filter(None, message.split(" ")))
@@ -44,37 +42,35 @@ def main():
                                       words_list[5] +
                                       " " +
                                       words_list[6],
-                                      "%d %B %Y")
+                                      FIRST_DATE_FORMAT)
         if "₽" in words_list[0]:
             continue
-        ride_price = int(float(words_list[0].replace("CZK", "").replace("Kč", "")))
+        ride_price = int(float(words_list[0].replace(CZK, "").replace(KC, "")))
         plot_data[ride_date] = ride_price
-        # y.append(ride_price)
-        # x.append(ride_date)
     for message in second_type:
         words_list = list(filter(None, message.split(" ")))
         if ("₽" in words_list[1]):
             continue
-        ride_price = int(float(words_list[1].replace("CZK", "").replace("Kč", "")))
+        ride_price = int(float(words_list[1].replace(CZK, "").replace(KC, "")))
         ride_date = datetime.strptime(words_list[2] +
                                       words_list[3] +
                                       " " +
                                       words_list[4] +
                                       words_list[5],
-                                      "%a,%b %d,%Y")
+                                      SECOND_DATE_FORMAT)
         plot_data[ride_date] = ride_price
     plt.plot(*zip(*sorted(plot_data.items())))
     plt.show()
 
 
 def get_messages_list_from_gmail_or_local_load(messages_list):
-    if (not os.path.exists("messages.pickle")):
+    if (not os.path.exists(MESSAGES_FILE_LOCAL)):
         service = prepare_gmail_api_service()
         get_uber_messages_list(messages_list, service)
-        with open('messages.pickle', 'wb') as file:
+        with open(MESSAGES_FILE_LOCAL, WB) as file:
             pickle.dump(messages_list, file)
     else:
-        with open('messages.pickle', 'rb') as file:
+        with open(MESSAGES_FILE_LOCAL, RB) as file:
             messages_list = pickle.load(file)
     return messages_list
 
@@ -87,8 +83,8 @@ def prepare_gmail_api_service():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(TOKEN_FILE_LOCAL):
+        with open(TOKEN_FILE_LOCAL, RB) as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -99,22 +95,22 @@ def prepare_gmail_api_service():
                 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        with open(TOKEN_FILE_LOCAL, WB) as token:
             pickle.dump(creds, token)
     service = build('gmail', 'v1', credentials=creds)
     return service
 
 
 def get_uber_messages_list(messages_list, service):
-    response = service.users().messages().list(userId='me', q="label:uber").execute()
-    while "nextPageToken" in response:
-        page_token = response['nextPageToken']
+    response = service.users().messages().list(userId='me', q=LABEL_UBER).execute()
+    while NEXT_PAGE_TOKEN in response:
+        page_token = response[NEXT_PAGE_TOKEN]
         messages = response.get('messages', [])
         for message in messages:
             msg = service.users().messages().get(userId='me', id=message['id']).execute()
             messages_list.append(msg)
         response = service.users().messages().list(userId='me',
-                                                   q="label:uber",
+                                                   q=LABEL_UBER,
                                                    pageToken=page_token).execute()
 
 
